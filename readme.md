@@ -191,6 +191,10 @@ Upload to the primary S3 bucket. Files will replicate automatically to the secon
 terraform destroy
 ```
 
+![alt text](<Screenshot 2025-04-17 at 11.04.29 AM.png>)
+![alt text](<Screenshot 2025-04-17 at 10.35.06 AM.png>)
+![alt text](<Screenshot 2025-04-17 at 10.26.19 AM.png>)
+
 Confirm with `yes`. Double-check resources are deleted in AWS Console.
 
 ## License
