@@ -1,0 +1,42 @@
+# Terraform State Files
+*.tfstate
+*.tfstate.*
+
+# Crash Logs
+crash.log
+
+# Terraform Variables Files
+*.tfvars
+*.tfvars.json
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Cache Files
+.terraform/
+.terraform.lock.hcl
+
+# Sensitive Credentials
+*.key
+*.pem
+
+# Backup Files
+*.backup
+
+# Logs and Logs Directories
+*.log
+
+# Ignore temporary files created by editors
+*.swp
+*.bak
+*.tmp
+.DS_Store
+
+# Environment-specific configurations
+.env
+
+# JSON plans
+*.tfplan
