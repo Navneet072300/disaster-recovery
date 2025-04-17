@@ -1,184 +1,202 @@
-Multi-Region Disaster Recovery Setup with AWS
-This project provides a Terraform-based infrastructure for a multi-region disaster recovery setup on AWS. It includes failover mechanisms using AWS Route 53 for DNS failover, RDS with a primary instance and cross-region read replica, and S3 with cross-region replication. The primary region is us-east-1, and the secondary region is us-west-2.
-Overview
+# Multi-Region Disaster Recovery Setup with AWS
+
+This project provides a Terraform-based infrastructure for a multi-region disaster recovery setup on AWS. It includes failover mechanisms using AWS Route 53 for DNS failover, RDS with a primary instance and cross-region read replica, and S3 with cross-region replication. The primary region is `us-east-1`, and the secondary region is `us-west-2`.
+
+## Overview
+
 The setup ensures high availability and data redundancy across two AWS regions:
 
-S3 Replication: Objects in the primary bucket (us-east-1) are replicated to the secondary bucket (us-west-2).
-RDS Failover: A MySQL primary database in us-east-1 has a read replica in us-west-2. Route 53 uses a failover routing policy to switch to the secondary endpoint if the primary fails.
-Route 53 Health Checks: Monitors the primary RDS instance and triggers failover to the secondary region if the primary becomes unavailable.
+- **S3 Replication**: Objects in the primary bucket (`us-east-1`) are replicated to the secondary bucket (`us-west-2`).
+- **RDS Failover**: A MySQL primary database in `us-east-1` has a read replica in `us-west-2`. Route 53 uses a failover routing policy to switch to the secondary endpoint if the primary fails.
+- **Route 53 Health Checks**: Monitors the primary RDS instance and triggers failover to the secondary region if the primary becomes unavailable.
 
-Architecture
+## Architecture
 
-Primary Region (us-east-1):
-S3 bucket with versioning enabled.
-RDS MySQL primary instance (db.t3.micro) with automated backups.
-Route 53 hosted zone with a primary CNAME record.
+### Primary Region (us-east-1):
 
-Secondary Region (us-west-2):
-S3 bucket with versioning enabled for replication.
-RDS MySQL read replica.
-Route 53 secondary CNAME record for failover.
+- S3 bucket with versioning enabled.
+- RDS MySQL primary instance (`db.t3.micro`) with automated backups.
+- Route 53 hosted zone with a primary CNAME record.
 
-Route 53:
-Failover routing policy with a health check on the primary RDS endpoint.
+### Secondary Region (us-west-2):
 
-IAM: Role and policy for S3 replication.
+- S3 bucket with versioning enabled for replication.
+- RDS MySQL read replica.
+- Route 53 secondary CNAME record for failover.
 
-Prerequisites
+### Route 53:
 
-AWS Account: With permissions to create S3 buckets, RDS instances, Route 53 hosted zones, and IAM roles.
-Terraform: Version 1.5 or later installed.
-AWS CLI: Configured with credentials (aws configure).
-Registered Domain: A domain registered in Route 53 (e.g., example.com).
-Secure Password: A strong password for the RDS instance.
+- Failover routing policy with a health check on the primary RDS endpoint.
 
-Directory Structure
-├── main.tf # Core infrastructure resources (S3, RDS, Route 53)
-├── provider.tf # AWS provider configuration for primary and secondary regions
-├── variables.tf # Input variables (regions, domain, DB password)
-└── README.md # This file
+### IAM:
 
-Setup Instructions
+- Role and policy for S3 replication.
 
-Clone or Create Repository:
+## Prerequisites
 
-Create a directory and save the Terraform files (main.tf, provider.tf, variables.tf) provided in the configuration.
+- AWS Account with required permissions.
+- Terraform v1.5 or later.
+- AWS CLI configured (`aws configure`).
+- Registered domain in Route 53 (e.g., `example.com`).
+- Secure password for the RDS instance.
 
-Update Variables:
+## Directory Structure
 
-Open variables.tf and update:
-domain_name: Replace example.com with your Route 53 registered domain.
-db_password: Replace securepassword123 with a secure password for the RDS instance.
-Optionally, adjust primary_region or secondary_region if using different regions.
+```
+├── main.tf           # Core infrastructure resources (S3, RDS, Route 53)
+├── provider.tf       # AWS provider configuration for primary and secondary regions
+├── variables.tf      # Input variables (regions, domain, DB password)
+└── README.md         # This file
+```
 
-Initialize Terraform:
-terraform init
+## Setup Instructions
 
-This downloads the required AWS provider and modules.
+1. **Clone or Create Repository**
+2. **Update Variables** in `variables.tf`:
+   - `domain_name`: Replace with your domain.
+   - `db_password`: Replace with a secure password.
+   - Adjust `primary_region` or `secondary_region` if necessary.
+3. **Initialize Terraform**:
+   ```bash
+   terraform init
+   ```
+4. **Review Plan**:
+   ```bash
+   terraform plan
+   ```
+5. **Deploy Infrastructure**:
+   ```bash
+   terraform apply
+   ```
+   Type `yes` to confirm.
+6. **Verify Deployment**:
+   - **S3**: Upload a file to the primary bucket and verify replication.
+   - **RDS**: Confirm both primary and read replica are active.
+   - **Route 53**: Check `app.<your-domain>` resolves to primary RDS, simulate failure to verify failover.
 
-Review the Plan:
-terraform plan
+## Terraform Configuration Details
 
-Verify the resources to be created (S3 buckets, RDS instances, Route 53 records, etc.).
+### provider.tf:
 
-Deploy the Infrastructure:
-terraform apply
+- Configures AWS providers for both regions using aliases.
 
-Type yes to confirm. Deployment typically takes 5-10 minutes due to RDS instance creation.
+### variables.tf:
 
-Verify Deployment:
+- Input variables for regions, domain, and RDS password.
 
-S3 Replication:
-Upload a file to the primary bucket (primary-bucket-<suffix>) in us-east-1.
-Check the secondary bucket (secondary-bucket-<suffix>) in us-west-2 for the replicated file.
+### main.tf:
 
-RDS:
-In AWS Console, confirm the primary (primary-db) and read replica (secondary-db) are active.
-Check replication status under "Replication" in the RDS console.
+- **S3**: Two versioned buckets with replication rule and IAM role.
+- **RDS**: MySQL primary instance and cross-region read replica.
+- **Route 53**: Hosted zone, failover policy, and health checks.
+- **IAM**: Role and policy for replication actions.
 
-Route 53:
-Resolve app.<your-domain> (e.g., app.example.com) to confirm it points to the primary RDS endpoint.
-Simulate a failure by stopping the primary RDS instance and verify that app.<your-domain> resolves to the secondary RDS endpoint.
+## Key Resources
 
-Terraform Configuration Details
-Files
+### S3:
 
-provider.tf:
-Configures AWS providers for us-east-1 (primary) and us-west-2 (secondary) with aliases.
+- Buckets: `primary-bucket-<suffix>`, `secondary-bucket-<suffix>`
+- Versioning and replication rule
 
-variables.tf:
-Defines input variables for regions, domain name, and RDS password.
+### RDS:
 
-main.tf:
-S3: Creates two buckets with versioning and replication from primary to secondary.
-RDS: Deploys a MySQL primary instance with automated backups and a cross-region read replica.
-Route 53: Sets up a hosted zone, failover routing policy, and health check for the primary RDS endpoint.
-IAM: Configures a role and policy for S3 replication.
+- MySQL 8.0, `db.t3.micro`, 20GB storage
+- Automated backups (1-day retention)
+- Cross-region read replica
 
-Key Resources
+### Route 53:
 
-S3:
-Buckets: primary-bucket-<random-suffix> and secondary-bucket-<random-suffix>.
-Versioning enabled on both buckets.
-Replication rule from primary to secondary with IAM role.
+- Hosted zone for specified domain
+- Failover CNAME records
+- Health check on port 3306 (use TCP or EC2-based endpoint)
 
-RDS:
-Primary: MySQL 8.0, db.t3.micro, 20GB storage, automated backups (1-day retention).
-Read Replica: Replicates from primary using ARN, same instance class.
+### IAM:
 
-Route 53:
-Hosted Zone: For the specified domain.
-CNAME Records: app.<domain> with primary and secondary failover policies.
-Health Check: HTTP check on primary RDS hostname (port 3306).
+- `s3-replication-role`
+- Policy with S3 replication permissions
 
-IAM:
-Role: s3-replication-role for S3 replication.
-Policy: Grants permissions for GetObject, ListBucket, and replication actions.
+## Usage
 
-Usage
+### Accessing the Application:
 
-Accessing the Application:
-Use app.<your-domain> to connect to the RDS instance. It resolves to the primary endpoint unless failover occurs.
+Use `app.<your-domain>` to connect to the RDS instance. It resolves to the primary unless a failover occurs.
 
-Failover Testing:
-Stop the primary RDS instance in us-east-1 via AWS Console.
-Route 53 health checks detect the failure (within ~90 seconds) and switch DNS to the secondary endpoint.
+### Failover Testing:
 
-Data Storage:
-Store objects in the primary S3 bucket; they automatically replicate to the secondary bucket.
+Stop the primary RDS instance. Health checks will detect failure and Route 53 will switch DNS to the secondary.
 
-Troubleshooting
+### Data Storage:
 
-S3 Replication Fails:
-Verify versioning is enabled on both buckets (check aws_s3_bucket_versioning resources).
-Ensure the IAM role has correct permissions (aws_iam_role_policy.replication).
+Upload to the primary S3 bucket. Files will replicate automatically to the secondary bucket.
 
-RDS Read Replica Not Created:
-Confirm automated backups are enabled (backup_retention_period = 1 in aws_db_instance.primary).
-Check that the primary instance is in Available state before replica creation.
+## Troubleshooting
 
-Route 53 Failover Not Working:
-Verify the health check (aws_route53_health_check.primary) is correctly configured.
-Ensure the RDS endpoint hostname is used without port (split(":", ...)[0]).
-If HTTP health checks fail, try TCP with proper security group rules.
+### S3 Replication Fails:
 
-General Errors:
-Run terraform plan to check for configuration issues.
-Review AWS Console for resource statuses and error logs.
+- Check versioning on both buckets.
+- Verify IAM permissions for replication.
 
-Production Considerations
+### RDS Read Replica Not Created:
 
-Security:
-Replace publicly_accessible = true with VPC security groups to restrict RDS access.
-Use AWS Secrets Manager for the RDS password instead of variables.tf.
-Enable encryption for S3 buckets and RDS instances.
+- Ensure `backup_retention_period = 1` in the primary instance.
+- Primary must be in `Available` state.
 
-Monitoring:
-Set up CloudWatch alarms for RDS health, S3 replication, and Route 53 health checks.
-Enable RDS Enhanced Monitoring and Performance Insights.
+### Route 53 Failover Issues:
 
-Backups:
-Increase backup_retention_period (up to 35 days) for RDS.
-Configure S3 lifecycle policies for versioning and archival.
+- Verify health check configuration.
+- Use RDS endpoint without port.
+- Use TCP if HTTP fails.
 
-Health Checks:
-HTTP health checks on port 3306 may not work with RDS MySQL. Use TCP or deploy a custom health check endpoint (e.g., an EC2 instance or Lambda function).
-Allow Route 53 health check IPs in RDS security groups.
+### General Errors:
 
-Scalability:
-Upgrade RDS instance types (e.g., db.m5.large) for production workloads.
-Add multi-AZ for the primary RDS instance for additional resilience.
+- Run `terraform plan` to debug.
+- Check AWS Console for detailed logs.
 
-Cost Optimization:
-Use Reserved Instances for RDS to reduce costs.
-Monitor S3 storage and replication costs.
+## Production Considerations
 
-Cleanup
-To destroy the infrastructure and avoid charges:
+### Security:
+
+- Use private RDS with VPC security groups.
+- Store passwords in AWS Secrets Manager.
+- Enable encryption for S3 and RDS.
+
+### Monitoring:
+
+- CloudWatch alarms for RDS, S3, Route 53
+- RDS Enhanced Monitoring
+
+### Backups:
+
+- Increase RDS backup retention
+- S3 lifecycle policies
+
+### Health Checks:
+
+- Use TCP or EC2-based endpoint
+- Whitelist Route 53 IPs in security groups
+
+### Scalability:
+
+- Upgrade RDS instance types
+- Enable multi-AZ for primary
+
+### Cost Optimization:
+
+- Use Reserved Instances for RDS
+- Monitor S3 replication/storage costs
+
+## Cleanup
+
+```bash
 terraform destroy
+```
 
-Confirm with yes. Ensure all resources (S3 buckets, RDS instances, Route 53 records) are deleted via AWS Console.
-License
+Confirm with `yes`. Double-check resources are deleted in AWS Console.
+
+## License
+
 This project is provided as-is for educational purposes. Ensure compliance with AWS terms and conditions.
-Contact
-For issues or questions, refer to the AWS documentation or contact your AWS support team. For Terraform-related queries, consult the Terraform AWS Provider documentation.
+
+## Contact
+
+For issues, refer to AWS documentation or contact AWS support. For Terraform-related help, consult the Terraform AWS Provider documentation.
